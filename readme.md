@@ -1,0 +1,1 @@
+# RushCode - CLI Coding Agent
