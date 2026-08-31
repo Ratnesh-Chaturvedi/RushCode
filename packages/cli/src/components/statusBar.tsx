@@ -13,7 +13,7 @@ export const StatusBar =()=>{
     <text attributes={TextAttributes.DIM} fg={colors.dimSeparator}>
         ›
     </text>
-    <text>Claude Opus 5</text>
+    <text>Nunnu-Model-2</text>
     </box>
     )
 }
