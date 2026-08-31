@@ -56,7 +56,7 @@ export const InputBar = ({ onSubmit, disabled = false }: Props) => {
         } else {
             textarea.insertText(command.value + " ")
         }
-    }, [renderer,toast])
+    }, [renderer,toast,dialog])
 
 
     const handleSubmit = useCallback(() => {
@@ -160,7 +160,7 @@ export const InputBar = ({ onSubmit, disabled = false }: Props) => {
                 )}
                     <textarea
                     ref={textareaRef}
-                    focused={!disabled && (isTopLayer("base") || isTopLayer("command"))} keyBindings={TEXTAREA_KEY_BINDINGS} placeholder={`Ask anyhting... "Fix the bug in index.tsx file`}
+                    focused={!disabled && (isTopLayer("base") || isTopLayer("command"))} keyBindings={TEXTAREA_KEY_BINDINGS} placeholder={`Ask anyhting... "Fix the bug in index.tsx file"`}
                     onContentChange={handleTextareaContentChange}
                     />
                     <StatusBar />
