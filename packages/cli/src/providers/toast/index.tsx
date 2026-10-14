@@ -57,9 +57,7 @@ export function TostProvider({children}:ToastProviderProps){
     }, duration).unref();
   }, [clearCurrentTimeout]);
 
-  const value:ToastContextValue={
-show
-  }
+  const value=useMemo(()=>({show}),[show])
 
   return (
     <ToastContext.Provider value={value}>
