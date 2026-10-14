@@ -1,0 +1,23 @@
+{
+  "name": "@rushcode/database",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./enums": "./src/enums.ts"
+  },
+  "private": true,
+  "scripts": {
+    "db:generate": "bunx prisma generate",
+    "postinstall": "prisma skills sync || exit 0"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "prisma": "^7.10.0"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "7",
+    "dotenv": "^18.0.7"
+  }
+}

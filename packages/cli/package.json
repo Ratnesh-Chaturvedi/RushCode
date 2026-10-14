@@ -7,6 +7,7 @@
     "dev": "bun run --watch src/index.tsx"
   },
   "devDependencies": {
+    "@rushcode/server": "workspace:*",
     "@types/bun": "latest",
     "@types/react": "^19.2.18"
   },
@@ -14,10 +15,14 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@hono/client": "^0.0.3",
     "@opentui/core": "^0.5.4",
     "@opentui/react": "^0.5.4",
+    "@rushcode/shared": "workspace:*",
+    "hono": "^4.13.7",
     "opentui-spinner": "^0.0.7",
     "react": "^19.2.6",
-    "react-router": "^8.3.0"
+    "react-router": "^8.3.0",
+    "zod": "^4.5.4"
   }
 }
