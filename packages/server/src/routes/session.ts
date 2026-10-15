@@ -4,7 +4,7 @@ import { z } from "zod";
 import { findSupportedChatModel } from "@rushcode/shared";
 import { db} from "@rushcode/database/client";
 import { Role, Mode , MessageStatus } from "@rushcode/database/enums";
-
+import * as Sentry from "@sentry/hono/bun";
 
 
 const createSessionSchema = z.object({
@@ -24,6 +24,10 @@ const createSessionSchema = z.object({
 const createSessionValidator = zValidator(
   "json", createSessionSchema, (result, c) => {
   if (!result.success) {
+    Sentry.logger.warn("Session Creation Error",{
+        path:c.req.path,
+        issues:result.error.issues.length
+    })
     return c.json({ error: "Invalid request body" }, 400);
   }
 });
@@ -39,7 +43,9 @@ const routes=app
             title:true,
             createdAt:true
         }
-
+    })
+    Sentry.logger.info("Listed Sessions",{
+        count:sessions.length 
     })
     return c.json(sessions)
 })
@@ -62,9 +68,17 @@ const routes=app
     })
 
      if (!session) {
-      return c.json({ error: "Session not found" }, 404);
-    }
+        Sentry.logger.warn("Session Not Found",{
+            sessionId:id,
+            userId:"mock-user" // when have real user replace with real user id
+        })
 
+        return c.json({ error: "Session not found" }, 404);
+    }
+    
+    Sentry.logger.info("Loaded Session",{
+        sessionId:session.id
+    })
     return c.json(session);
 })
 .post("/",createSessionValidator,async (c)=>{
@@ -95,6 +109,11 @@ const routes=app
         include:{messages:true}
      }) 
 
+
+     Sentry.logger.info("Session Created",{
+        sessionId:session.id,
+        title:session.title
+     })
 return c.json(session,201)
     
 })
