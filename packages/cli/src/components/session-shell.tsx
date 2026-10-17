@@ -2,13 +2,14 @@ import { TextAttributes } from "@opentui/core";
 import type { ReactNode } from "react";
 import { InputBar } from "./inputBar";
 import { Spinner } from "./spinner";
+import { usePromptConfig } from "../providers/prompt-config";
 
 type Props = {
   children?: ReactNode;
   onSubmit: (text: string) => void;
   inputDisabled?: boolean;
   loading?: boolean;
-  interruptible?:boolean
+  interruptible?: boolean;
 };
 
 export function SessionShell({
@@ -16,8 +17,11 @@ export function SessionShell({
   onSubmit,
   inputDisabled = false,
   loading = false,
-  interruptible=false,
+  interruptible = false,
 }: Props) {
+  
+  const { mode } = usePromptConfig();
+
   return (
     <box
       flexDirection="column"
@@ -28,7 +32,7 @@ export function SessionShell({
       paddingX={2}
       gap={1}
     >
-        {/* stickyscroll is the property which autmatically scroll as we receive new responses from the llm */}
+      {/* stickyscroll is the property which autmatically scroll as we receive new responses from the llm */}
       <scrollbox flexGrow={1} width="100%" stickyScroll stickyStart="bottom">
         <box gap={1}>{children}</box>
       </scrollbox>
@@ -45,11 +49,12 @@ export function SessionShell({
         paddingLeft={1}
       >
         <box flexDirection="row" alignItems="center" gap={2}>
-          {loading ?(<>
-          <Spinner/>
-          {interruptible?<text>esc to interrupt</text>:null}
-          </>
-          ):null}
+          {loading ? (
+            <>
+              <Spinner mode={mode} />
+              {interruptible ? <text>esc to interrupt</text> : null}
+            </>
+          ) : null}
         </box>
 
         <box flexDirection="row" gap={1} flexShrink={0} marginLeft="auto">
@@ -59,4 +64,4 @@ export function SessionShell({
       </box>
     </box>
   );
-};
+}

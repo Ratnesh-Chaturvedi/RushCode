@@ -181,14 +181,14 @@ const app = new Hono()
     // also check is it even supported
     if (!isSupportedChatModel(resumableMessage.model)) {
       return c.json(
-        { error: `Session used unsupported chat model ${resumableMessage.model}` },
+        { error: `Session uses unsupported chat model ${resumableMessage.model}` },
         409,
       );
     }
 
     // to check active resume is in progress or not 
     if(!activeResumeSessionIds.has(sessionId)){
-      return c.json({error:"Session already  has an active session"},409)
+      return c.json({error:"Session already  has an active resume"},409)
     }
 
     activeResumeSessionIds.add(sessionId)

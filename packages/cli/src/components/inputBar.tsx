@@ -10,6 +10,10 @@ import { useToast } from "../providers/toast";
 import { useDialog } from "../providers/dialog";
 import { useKeyboardLayer } from "../providers/keyboard-layer";
 import { useTheme } from "../providers/theme";
+import { useNavigate } from "react-router";
+import { Mode } from "@rushcode/database/enums";
+import { usePromptConfig } from "../providers/prompt-config";
+
 
 
 type Props = {
@@ -25,11 +29,13 @@ export const TEXTAREA_KEY_BINDINGS: KeyBinding[] = [
 ];
 
 export const InputBar = ({ onSubmit, disabled = false }: Props) => {
+    const {mode,toggleMode,setMode,setModel}=usePromptConfig()
     const textareaRef = useRef<TextareaRenderable>(null)
     const onSubmitRef = useRef<() => void>(() => { });
     const renderer = useRenderer()
     const toast=useToast()
     const dialog=useDialog()
+    const navigate=useNavigate()
     const {isTopLayer,setResponder} =useKeyboardLayer()
     const {colors}=useTheme()
     const {
@@ -50,13 +56,17 @@ export const InputBar = ({ onSubmit, disabled = false }: Props) => {
             command.action({
                 exit: () => renderer.destroy(),
                 toast,
-                dialog
+                dialog,
+                navigate,
+                mode,
+                setMode,
+                setModel,
             })
 
         } else {
             textarea.insertText(command.value + " ")
         }
-    }, [renderer,toast,dialog])
+    }, [renderer,toast,dialog,navigate,mode,setMode,setModel])
 
 
     const handleSubmit = useCallback(() => {
@@ -112,12 +122,21 @@ export const InputBar = ({ onSubmit, disabled = false }: Props) => {
         handleSubmit();
     };
 
+useKeyboard((key)=>{
+if(disabled)return;
+if(!isTopLayer("base"))return;
+if(key.name==="tab"){
+    key.preventDefault();
+    toggleMode()
+}
+})
+
+
 
     //Register the base layer responder for ctrl+c dismassal
     useEffect(()=>{
         setResponder("base",()=>{
             if(disabled)return false;
-
             const textarea=textareaRef.current
             if(textarea && textarea.plainText.length>0){
                 textarea.setText("")
@@ -135,7 +154,7 @@ export const InputBar = ({ onSubmit, disabled = false }: Props) => {
         <box width="100%" alignItems="center">
             <box
                 border={["left"]}
-                borderColor={colors.primary}
+                borderColor={mode===Mode.PLAN?colors.planMode:colors.primary}
                 width="100%"
             >
                 <box position="relative" justifyContent="center" paddingX={2} paddingY={1} backgroundColor={colors.surface} gap={1}>
