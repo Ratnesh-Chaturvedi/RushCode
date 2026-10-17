@@ -1,49 +1,144 @@
 import { SessionShell } from "../components/session-shell";
 import { useParams, useLocation, useNavigate } from "react-router";
 import { useState, useEffect, useMemo } from "react";
-import {z} from "zod"
+import { int, z } from "zod";
 import type { InferResponseType } from "hono";
-import { UserMessage,BotMessage,ErrorMessage } from "../components/message";
+import { UserMessage, BotMessage, ErrorMessage } from "../components/message";
 import { useToast } from "../providers/toast";
 import { apiClient } from "../lib/api-client";
 import { getErrorMessage } from "../lib/http-errors";
+import prettyMilliseconds from "pretty-ms";
+import {
+  DEFAULT_CHAT_MODEL_ID,
+  type SupportedChatModelId,
+} from "@rushcode/shared";
+import { useChat } from "../hooks/use-chat";
+import type { Message, ClientMessagePart } from "../hooks/use-chat";
+import { useKeyboard } from "@opentui/react";
 
+import { MessageStatus } from "@rushcode/database/enums";
+import { useKeyboardLayer } from "../providers/keyboard-layer";
 
-type SessionData = InferResponseType<(typeof apiClient.sessions)[":id"]["$get"], 200>;
+type SessionData = InferResponseType<
+  (typeof apiClient.sessions)[":id"]["$get"],
+  200
+>;
+
+function mapDBMessages(dbMessages: SessionData["messages"]): Message[] {
+  return dbMessages.map((m): Message => {
+    if (m.role === "ERROR") {
+      return { id: m.id, role: "error", content: m.content };
+    }
+    if (m.role === "USER") {
+      return {
+        id: m.id,
+        role: "user",
+        content: m.content,
+        mode: m.mode,
+        model: m.model as SupportedChatModelId,
+      };
+    }
+    // assistant message
+    return {
+      id: m.id,
+      role: "assistant",
+      content: m.content,
+      mode: m.mode,
+      model: m.model as SupportedChatModelId,
+      parts: [{ type: "text", text: m.content }],
+      ...(m.duration != null
+        ? { duration: prettyMilliseconds(m.duration * 1000) }
+        : {}),
+        interrupted:m.status===MessageStatus.INTERRUPTED
+    };
+  });
+}
 
 const sessionLocationSchema = z.object({
-  session: z.custom<SessionData>((val) => val != null && typeof val === "object" && "id" in val),
+  session: z.custom<SessionData>(
+    (val) => val != null && typeof val === "object" && "id" in val,
+  ),
 });
 
-function ChatMessage(
-  { msg }: {
-    msg: SessionData["messages"][number]
-  }
-) {
-  if (msg.role === "USER") {
+function ChatMessage({ msg }: { msg: Message }) {
+  if (msg.role === "user") {
     return <UserMessage message={msg.content} />;
   }
-  if (msg.role === "ERROR") {
+  if (msg.role === "error") {
     return <ErrorMessage message={msg.content} />;
   }
-  return <BotMessage content={msg.content} model={msg.model} />;
-};
+  return (
+    <BotMessage
+      parts={msg.parts}
+      model={msg.model}
+      mode={msg.mode}
+      streaming={false} 
+      duration={msg.duration}
+      interrupted={msg.interrupted}
+    />
+  );
+}
+
+function SessionChat({ session }: { session: SessionData }) {
+  const [initialMessages] = useState(() => mapDBMessages(session.messages));
+  const { messages, streaming, submit, abort,interrupt } = useChat(
+    session.id,
+    initialMessages,
+  );
+
+  const {isTopLayer}=useKeyboardLayer()
 
 
-export function Session(){
+  // stop any pending replies
+  useEffect(() => {
+    return () => abort();
+  }, [abort]);
 
-     const { id } = useParams();
+// let the user canel or interrupt the reply of the bot message before the first stream chunk arrives
+useKeyboard((key)=>{
+if(key.name==="escape" && isTopLayer("base") && streaming.status==="streaming"){
+  key.preventDefault();
+  interrupt()
+}
+})
+
+  return (
+    <SessionShell
+      onSubmit={(text) =>
+        submit({ userText: text, mode: "BUILD", model: DEFAULT_CHAT_MODEL_ID })
+      }
+      loading={streaming.status === "streaming"}
+      interruptible={streaming.status==="streaming"}
+    >
+      {messages.map((m) => (
+        <ChatMessage key={m.id} msg={m} />
+      ))}
+
+      {streaming.status === "streaming" && streaming.parts.length > 0 && (
+        <BotMessage
+          parts={streaming.parts}
+          model={streaming.model}
+          mode={streaming.mode}
+          streaming
+        />
+      )}
+    </SessionShell>
+  );
+}
+
+export function Session() {
+  const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
 
-const prefetched = useMemo(() => {
+  const prefetched = useMemo(() => {
     const parsed = sessionLocationSchema.safeParse(location.state);
     return parsed.success ? parsed.data.session : null;
   }, [location.state]);
 
-   const [session, setSession] = useState<SessionData | null>(prefetched);
-    useEffect(() => {
+  const [session, setSession] = useState<SessionData | null>(prefetched);
+  useEffect(() => {
     // Skip fetch if session was passed via location state
     if (prefetched) return;
 
@@ -54,7 +149,7 @@ const prefetched = useMemo(() => {
     let ignore = false;
     const fetchSession = async () => {
       try {
-        const res = await apiClient.sessions[":id"].$get({ 
+        const res = await apiClient.sessions[":id"].$get({
           param: { id },
         });
         if (ignore) return;
@@ -65,7 +160,8 @@ const prefetched = useMemo(() => {
         if (ignore) return;
         toast.show({
           variant: "error",
-          message: err instanceof Error ? err.message : "Failed to load session",
+          message:
+            err instanceof Error ? err.message : "Failed to load session",
         });
         navigate("/", { replace: true });
       }
@@ -77,15 +173,9 @@ const prefetched = useMemo(() => {
     };
   }, [id, prefetched, toast, navigate]);
 
-    if (!session) {
+  if (!session) {
     return <SessionShell onSubmit={() => {}} inputDisabled loading />;
   }
 
-  return (
-    <SessionShell onSubmit={() => {}} inputDisabled>
-      {session.messages.map((msg) => (
-        <ChatMessage key={msg.id} msg={msg} />
-      ))}
-    </SessionShell>
-  );
+  return <SessionChat key={session.id} session={session} />;
 }
