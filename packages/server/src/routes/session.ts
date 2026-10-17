@@ -44,9 +44,9 @@ const routes=app
             createdAt:true
         }
     })
-    Sentry.logger.info("Listed Sessions",{
-        count:sessions.length 
-    })
+    // Sentry.logger.info("Listed Sessions",{
+    //     count:sessions.length 
+    // })
     return c.json(sessions)
 })
 .get("/:id",async (c)=>{
@@ -68,17 +68,17 @@ const routes=app
     })
 
      if (!session) {
-        Sentry.logger.warn("Session Not Found",{
-            sessionId:id,
-            userId:"mock-user" // when have real user replace with real user id
-        })
+        // Sentry.logger.warn("Session Not Found",{
+        //     sessionId:id,
+        //     userId:"mock-user" // when have real user replace with real user id
+        // })
 
         return c.json({ error: "Session not found" }, 404);
     }
     
-    Sentry.logger.info("Loaded Session",{
-        sessionId:session.id
-    })
+    // Sentry.logger.info("Loaded Session",{
+    //     sessionId:session.id
+    // })
     return c.json(session);
 })
 .post("/",createSessionValidator,async (c)=>{
@@ -110,10 +110,10 @@ const routes=app
      }) 
 
 
-     Sentry.logger.info("Session Created",{
-        sessionId:session.id,
-        title:session.title
-     })
+    //  Sentry.logger.info("Session Created",{
+    //     sessionId:session.id,
+    //     title:session.title
+    //  })
 return c.json(session,201)
     
 })

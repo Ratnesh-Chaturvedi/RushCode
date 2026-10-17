@@ -1,19 +1,20 @@
 import { Box, TextAttributes } from "@opentui/core";
 import { useTheme } from "../providers/theme";
-
+import { usePromptConfig } from "../providers/prompt-config";
+import { Mode } from "@rushcode/database/enums";
 export const StatusBar =()=>{
     const {colors}=useTheme()
-    
+    const {model,mode}=usePromptConfig()
     return (
     <box flexDirection="row" 
     gap={1}>
-        <text fg={colors.primary}>
-            Build
+        <text fg={mode===Mode.PLAN?colors.planMode:colors.primary}>
+            {mode===Mode.PLAN?"Plan":"Build"}
         </text>
     <text attributes={TextAttributes.DIM} fg={colors.dimSeparator}>
         ›
     </text>
-    <text>gemini-3.1-flash-lite</text>
+    <text>{model}</text>
     </box>
     )
 }
