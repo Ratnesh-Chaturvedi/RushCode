@@ -9,13 +9,13 @@ import { apiClient } from "../lib/api-client";
 import { getErrorMessage } from "../lib/http-errors";
 import prettyMilliseconds from "pretty-ms";
 import {
-  DEFAULT_CHAT_MODEL_ID,
+  messagePartsSchema,
   type SupportedChatModelId,
 } from "@rushcode/shared";
 import { useChat } from "../hooks/use-chat";
 import type { Message, ClientMessagePart } from "../hooks/use-chat";
 import { useKeyboard } from "@opentui/react";
-
+import { usePromptConfig } from "../providers/prompt-config";
 import { MessageStatus } from "@rushcode/database/enums";
 import { useKeyboardLayer } from "../providers/keyboard-layer";
 
@@ -38,6 +38,15 @@ function mapDBMessages(dbMessages: SessionData["messages"]): Message[] {
         model: m.model as SupportedChatModelId,
       };
     }
+
+    const parsedParts =
+      m.parts == null ? null : messagePartsSchema.safeParse(m.parts);
+    const parts: ClientMessagePart[] = parsedParts?.success
+      ? parsedParts.data.map((p) =>
+          p.type === "tool-call" ? { ...p, status: "done" as const } : p,
+        )
+      : [];
+
     // assistant message
     return {
       id: m.id,
@@ -45,11 +54,11 @@ function mapDBMessages(dbMessages: SessionData["messages"]): Message[] {
       content: m.content,
       mode: m.mode,
       model: m.model as SupportedChatModelId,
-      parts: [{ type: "text", text: m.content }],
+      parts,
       ...(m.duration != null
         ? { duration: prettyMilliseconds(m.duration * 1000) }
         : {}),
-        interrupted:m.status===MessageStatus.INTERRUPTED
+      interrupted: m.status === MessageStatus.INTERRUPTED,
     };
   });
 }
@@ -62,7 +71,7 @@ const sessionLocationSchema = z.object({
 
 function ChatMessage({ msg }: { msg: Message }) {
   if (msg.role === "user") {
-    return <UserMessage message={msg.content} />;
+    return <UserMessage message={msg.content} mode={msg.mode} />;
   }
   if (msg.role === "error") {
     return <ErrorMessage message={msg.content} />;
@@ -72,7 +81,7 @@ function ChatMessage({ msg }: { msg: Message }) {
       parts={msg.parts}
       model={msg.model}
       mode={msg.mode}
-      streaming={false} 
+      streaming={false}
       duration={msg.duration}
       interrupted={msg.interrupted}
     />
@@ -81,34 +90,35 @@ function ChatMessage({ msg }: { msg: Message }) {
 
 function SessionChat({ session }: { session: SessionData }) {
   const [initialMessages] = useState(() => mapDBMessages(session.messages));
-  const { messages, streaming, submit, abort,interrupt } = useChat(
+  const { messages, streaming, submit, abort, interrupt } = useChat(
     session.id,
     initialMessages,
   );
-
-  const {isTopLayer}=useKeyboardLayer()
-
+  const { mode, model } = usePromptConfig();
+  const { isTopLayer } = useKeyboardLayer();
 
   // stop any pending replies
   useEffect(() => {
     return () => abort();
   }, [abort]);
 
-// let the user canel or interrupt the reply of the bot message before the first stream chunk arrives
-useKeyboard((key)=>{
-if(key.name==="escape" && isTopLayer("base") && streaming.status==="streaming"){
-  key.preventDefault();
-  interrupt()
-}
-})
+  // let the user canel or interrupt the reply of the bot message before the first stream chunk arrives
+  useKeyboard((key) => {
+    if (
+      key.name === "escape" &&
+      isTopLayer("base") &&
+      streaming.status === "streaming"
+    ) {
+      key.preventDefault();
+      interrupt();
+    }
+  });
 
   return (
     <SessionShell
-      onSubmit={(text) =>
-        submit({ userText: text, mode: "BUILD", model: DEFAULT_CHAT_MODEL_ID })
-      }
+      onSubmit={(text) => submit({ userText: text, mode, model })}
       loading={streaming.status === "streaming"}
-      interruptible={streaming.status==="streaming"}
+      interruptible={streaming.status === "streaming"}
     >
       {messages.map((m) => (
         <ChatMessage key={m.id} msg={m} />

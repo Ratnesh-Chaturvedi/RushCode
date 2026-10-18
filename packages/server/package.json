@@ -20,6 +20,7 @@
     "@rushcode/shared": "workspace:*",
     "@sentry/bun": "^11.7.0",
     "@sentry/hono": "^11.7.0",
+    "@types/bun": "^1.4.3",
     "ai": "^7.0.141",
     "dotenv": "^18.0.7",
     "hono": "^4.13.7",

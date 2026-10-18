@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { stream, streamSSE } from "hono/streaming";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { streamText as aiStreamText, smoothStream } from "ai";
+import { streamText as aiStreamText, smoothStream, stepCountIs } from "ai";
 import { db } from "@rushcode/database/client";
 import { Mode, MessageStatus } from "@rushcode/database/enums";
 import type { Prisma } from "@rushcode/database";
@@ -13,6 +13,8 @@ import {
   messagePartsSchema,
 } from "@rushcode/shared";
 import { isSupportedChatModel, resolveChatModel } from "../lib/models";
+import { createTools } from "../tools";
+import { buildSystemPrompt } from "../system-prompt";
 
 const submitSchema = z.object({
   content: z.string(),
@@ -71,16 +73,18 @@ type StreamParams = {
   history: { role: "user" | "assistant"; content: string }[];
   mode: Mode;
   abortController: AbortController;
+  cwd: string | null;
 };
 
 async function StreamAIResponse(
   stream: Parameters<Parameters<typeof streamSSE>[1]>[0],
   params: StreamParams,
 ) {
-  const { sessionId, model, history, mode, abortController } = params;
+  const { sessionId, model, history, mode, abortController, cwd } = params;
   const startTime = Date.now();
   const resolveModel = resolveChatModel(model);
   const parts: MessagePart[] = [];
+  const tools = cwd ? createTools(cwd, mode) : undefined;
 
   const persistInterruptedMessage = async () => {
     const fullText = parts
@@ -114,6 +118,9 @@ async function StreamAIResponse(
       messages: history,
       abortSignal: abortController.signal,
       providerOptions: resolveModel.providerOptions,
+      instructions: buildSystemPrompt({ cwd, mode }),
+      tools,
+      stopWhen: tools ? stepCountIs(50) : undefined,
 
       // for more smoother response streaming
       experimental_transform: smoothStream({
@@ -230,7 +237,7 @@ async function StreamAIResponse(
         model,
         content: fullText,
         mode,
-        parts:validatedParts,
+        parts: validatedParts,
         duration: Math.round(elapsedMs / 1000),
       },
     });
@@ -316,6 +323,7 @@ const app = new Hono()
               sessionId,
               model: resumableMessage.model,
               history,
+              cwd:session.cwd,
               mode: resumableMessage.mode,
               abortController,
             });
@@ -383,6 +391,7 @@ const app = new Hono()
           sessionId,
           model: data.model,
           history,
+          cwd:session.cwd,
           mode: data.mode,
           abortController,
         });
