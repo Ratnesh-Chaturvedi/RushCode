@@ -2,6 +2,7 @@ import { google } from "@ai-sdk/google";
 import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
 import { mistral } from "@ai-sdk/mistral";
+import { groq } from "@ai-sdk/groq";
 import {
   findSupportedChatModel,
   type SupportedProvider,
@@ -19,6 +20,7 @@ type AnthropiclId = Extract<
 
 type OpenAIId = Extract<SupportedChatModel, { provider: "openai" }>["id"];
 type MistralId = Extract<SupportedChatModel, { provider: "mistral" }>["id"];
+type GroqId = Extract<SupportedChatModel, { provider: "groq" }>["id"];
 
 export type ResolveModel = {
   model: LanguageModel;
@@ -70,6 +72,14 @@ const Mistral_PROVIDER_OPTIONS: Partial<Record<MistralId, ProviderOptions>> = {
     },
   },
 };
+const Groq_PROVIDER_OPTIONS: Partial<Record<GroqId, ProviderOptions>> = {
+  "qwen/qwen3.8-27b": {
+    groq: {
+      reasoningFormat: "parsed",
+      reasoningEffort: "medium",
+    },
+  },
+};
 
 function assertUnsupportedProvider(provider: never): never {
   throw new Error(`Unsupported Provider:${provider}`);
@@ -108,6 +118,14 @@ function resolveMistralModel(modelId: MistralId): ResolveModel {
     providerOptions: Mistral_PROVIDER_OPTIONS[modelId],
   };
 }
+function resolveGroqModel(modelId: GroqId): ResolveModel {
+  return {
+    model: groq(modelId),
+    provider: "groq",
+    modelId,
+    providerOptions: Groq_PROVIDER_OPTIONS[modelId],
+  };
+}
 
 function resolveSupportedChatModel(model: SupportedChatModel): ResolveModel {
   const provider = model.provider;
@@ -121,6 +139,8 @@ function resolveSupportedChatModel(model: SupportedChatModel): ResolveModel {
       return resolveGoogleModel(model.id);
     case "mistral":
       return resolveMistralModel(model.id);
+    case "groq":
+      return resolveGroqModel(model.id)
     default:
       return assertUnsupportedProvider(provider);
   }

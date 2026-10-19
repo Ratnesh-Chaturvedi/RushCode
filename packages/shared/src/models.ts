@@ -3,7 +3,7 @@ export type ModelPricing = {
   outputUsdPerMillionTokens: number;
 };
 
-export type SupportedProvider = "anthropic" | "openai" | "google" | "mistral";
+export type SupportedProvider = "anthropic" | "openai" | "google" | "mistral" | "groq";
 
 type SupportedChatModelDefinition = {
   id: string;
@@ -71,6 +71,14 @@ export const SUPPORTED_CHAT_MODELS = [
   {
     id: "mistral-small-latest",
     provider: "mistral",
+    pricing: {
+      inputUsdPerMillionTokens: 1,
+      outputUsdPerMillionTokens: 2.5,
+    },
+  },
+  {
+    id: "qwen/qwen3.8-27b",
+    provider: "groq",
     pricing: {
       inputUsdPerMillionTokens: 1,
       outputUsdPerMillionTokens: 2.5,
