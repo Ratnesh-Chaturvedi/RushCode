@@ -7,18 +7,21 @@
   },
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "build":"bun build src/index.ts --outdir dist --target bun",
+    "build": "bun build src/index.ts --outdir dist --target bun",
     "postinstall": "bun run --cwd ../database db:generate"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.80",
     "@ai-sdk/google": "^4.0.96",
+    "@ai-sdk/mistral": "^4.0.66",
     "@ai-sdk/openai": "^4.0.94",
+    "@ai-sdk/provider-utils": "^5.0.62",
     "@hono/zod-validator": "^0.9.1",
     "@rushcode/database": "workspace:*",
     "@rushcode/shared": "workspace:*",
     "@sentry/bun": "^11.7.0",
     "@sentry/hono": "^11.7.0",
+    "@types/bun": "^1.4.3",
     "ai": "^7.0.141",
     "dotenv": "^18.0.7",
     "hono": "^4.13.7",

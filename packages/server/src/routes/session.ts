@@ -63,7 +63,7 @@ const routes=app
     const session=await db.session.findUnique({
         where:{id},
         include:{
-            messages:{orderBy:{createdAt:"desc"}}
+            messages:{orderBy:{createdAt:"asc"}}
         }
     })
 
