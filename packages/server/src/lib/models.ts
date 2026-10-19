@@ -1,6 +1,7 @@
 import { google } from "@ai-sdk/google";
 import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
+import { mistral } from "@ai-sdk/mistral";
 import {
   findSupportedChatModel,
   type SupportedProvider,
@@ -15,7 +16,9 @@ type AnthropiclId = Extract<
   SupportedChatModel,
   { provider: "anthropic" }
 >["id"];
+
 type OpenAIId = Extract<SupportedChatModel, { provider: "openai" }>["id"];
+type MistralId = Extract<SupportedChatModel, { provider: "mistral" }>["id"];
 
 export type ResolveModel = {
   model: LanguageModel;
@@ -51,22 +54,22 @@ const ANTHROPIC_PROVIDER_OPTIONS: Partial<
 const GOOGLE_PROVIDER_OPTIONS: Partial<Record<GoogleModelId, ProviderOptions>> =
   {
     "gemini-3.1-flash-lite": {
-        google: {
-          thinkingConfig: {
-            thinkingLevel: "high",
-            includeThoughts: true,
-          },
+      google: {
+        thinkingConfig: {
+          thinkingLevel: "high",
+          includeThoughts: true,
         },
-    },
-    "gemini-2.5-flash": {
-        google: {
-          thinkingConfig: {
-            thinkingBudget: 8192,
-            includeThoughts: true,
-          },
-        },
+      },
     },
   };
+
+const Mistral_PROVIDER_OPTIONS: Partial<Record<MistralId, ProviderOptions>> = {
+  "mistral-small-latest": {
+    mistral: {
+      reasoning: "high",
+    },
+  },
+};
 
 function assertUnsupportedProvider(provider: never): never {
   throw new Error(`Unsupported Provider:${provider}`);
@@ -97,6 +100,14 @@ function resolveGoogleModel(modelId: GoogleModelId): ResolveModel {
     providerOptions: GOOGLE_PROVIDER_OPTIONS[modelId],
   };
 }
+function resolveMistralModel(modelId: MistralId): ResolveModel {
+  return {
+    model: mistral(modelId),
+    provider: "mistral",
+    modelId,
+    providerOptions: Mistral_PROVIDER_OPTIONS[modelId],
+  };
+}
 
 function resolveSupportedChatModel(model: SupportedChatModel): ResolveModel {
   const provider = model.provider;
@@ -108,6 +119,8 @@ function resolveSupportedChatModel(model: SupportedChatModel): ResolveModel {
       return resolveOpenAIModel(model.id);
     case "google":
       return resolveGoogleModel(model.id);
+    case "mistral":
+      return resolveMistralModel(model.id);
     default:
       return assertUnsupportedProvider(provider);
   }
