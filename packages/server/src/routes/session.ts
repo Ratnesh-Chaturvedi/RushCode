@@ -5,6 +5,7 @@ import { findSupportedChatModel } from "@rushcode/shared";
 import { db} from "@rushcode/database/client";
 import { Role, Mode , MessageStatus } from "@rushcode/database/enums";
 import * as Sentry from "@sentry/hono/bun";
+import type { AuthenticatedEnv } from "../middleware/require-auth";
 
 
 const createSessionSchema = z.object({
@@ -32,11 +33,11 @@ const createSessionValidator = zValidator(
   }
 });
 
-const app=new Hono()
-
-const routes=app
+const app=new Hono<AuthenticatedEnv >()
 .get("/",async (c)=>{
+    const userId=c.get("userId")
     const sessions=await db.session.findMany({
+        where:{userId},
         orderBy:{createdAt:"desc"},
         select:{
             id:true,
@@ -60,8 +61,9 @@ const routes=app
     // )
 
     const id=c.req.param("id")
+    const userId=c.get("userId")
     const session=await db.session.findUnique({
-        where:{id},
+        where:{id,userId},
         include:{
             messages:{orderBy:{createdAt:"asc"}}
         }
@@ -92,11 +94,11 @@ const routes=app
     // )
 
     const {initialMessage,...data}=c.req.valid("json")
-
+    const userId=c.get("userId")
      const session=await db.session.create({
         data:{
             ...data,
-            userId:"mock-user",
+            userId,
             ...(initialMessage && {
                 messages:{
                     create:{
@@ -119,4 +121,4 @@ return c.json(session,201)
 })
 
 
-export default routes
+export default app

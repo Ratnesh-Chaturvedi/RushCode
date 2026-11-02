@@ -6,6 +6,10 @@ import {
   ThemeDialogContent,
 } from "../dialogs";
 import type { Command } from "./types";
+import { performLogin } from "../../lib/oauth";
+import { clearAuth } from "../../lib/auth";
+
+
 
 export const COMMANDS: Command[] = [
   {
@@ -20,8 +24,15 @@ export const COMMANDS: Command[] = [
     name: "login",
     description: "Sign In with our browser",
     value: "/login",
-    action: (ctx) => {
+    action: async (ctx) => {
       ctx.toast.show({ message: "Opening browser to login..." });
+      try {
+        await performLogin();
+        ctx.toast.show({variant:"success",message:"Signed In"})
+      } catch (error) {
+        const msg=error instanceof Error ?error.message:"Sign in failed or time out"
+        ctx.toast.show({variant:"error",message:msg})
+      }
     },
   },
   {
@@ -29,6 +40,7 @@ export const COMMANDS: Command[] = [
     description: "Sign Out with our browser",
     value: "/logout",
     action: (ctx) => {
+      clearAuth()
       ctx.toast.show({ variant: "success", message: "Signed out" });
     },
   },
